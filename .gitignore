@@ -1,0 +1,16 @@
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor settings
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# Logs
+*.log
+
+# Dependencies / deploy tools (not used yet, but common later)
+node_modules/
+.vercel/

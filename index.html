@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Personal Planner — a cute planner with a calendar, tasks, mood diary and water tracker.">
+  <title>Personal Planner</title>
+  <link rel="icon" href="assets/icons/favicon.svg" type="image/svg+xml">
+
+  <!-- "Mali" is a rounded, friendly font that supports both Thai and English -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Mali:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+
+  <!-- Apply the saved theme before the page paints, so dark mode users don't see a white flash -->
+  <script>
+    (function () {
+      try {
+        var savedTheme = JSON.parse(localStorage.getItem('planner_theme'));
+        var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        var theme = savedTheme === 'dark' || savedTheme === 'light' ? savedTheme : (prefersDark ? 'dark' : 'light');
+        document.documentElement.setAttribute('data-theme', theme);
+      } catch (error) {
+        document.documentElement.setAttribute('data-theme', 'light');
+      }
+    })();
+  </script>
+</head>
+<body>
+  <!--
+    Icon sprite: every icon is drawn once here as a <symbol>, then reused with
+    <svg><use href="#icon-name"></use></svg>.
+    - "icon-*"  = line icons (they take the text color)
+    - "mood-*"  = cute filled faces for the mood tracker
+  -->
+  <svg class="icon-sprite" aria-hidden="true" focusable="false">
+    <!-- Line icons -->
+    <symbol id="icon-dashboard" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></symbol>
+    <symbol id="icon-calendar" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></symbol>
+    <symbol id="icon-tasks" viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></symbol>
+    <symbol id="icon-water" viewBox="0 0 24 24"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></symbol>
+    <symbol id="icon-diary" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></symbol>
+    <symbol id="icon-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></symbol>
+    <symbol id="icon-heart" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></symbol>
+    <symbol id="icon-smile" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></symbol>
+    <symbol id="icon-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></symbol>
+    <symbol id="icon-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></symbol>
+    <symbol id="icon-plus" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></symbol>
+    <symbol id="icon-edit" viewBox="0 0 24 24"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></symbol>
+    <symbol id="icon-trash" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></symbol>
+    <symbol id="icon-chevron-left" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></symbol>
+    <symbol id="icon-chevron-right" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></symbol>
+    <symbol id="icon-image" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></symbol>
+    <symbol id="icon-save" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></symbol>
+    <symbol id="icon-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></symbol>
+    <symbol id="icon-upload" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></symbol>
+    <symbol id="icon-user" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></symbol>
+    <symbol id="icon-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></symbol>
+    <symbol id="icon-cloud" viewBox="0 0 24 24"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></symbol>
+    <symbol id="icon-pin" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></symbol>
+    <symbol id="icon-database" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></symbol>
+
+    <!-- Filled drop used for the water glasses -->
+    <symbol id="drop" viewBox="0 0 24 24"><path d="M12 2.5 C12 2.5 5 10 5 14.5 a7 7 0 0 0 14 0 C19 10 12 2.5 12 2.5z"/><ellipse cx="9.3" cy="14" rx="1.4" ry="2.2" fill="#ffffff" opacity="0.7" stroke="none"/></symbol>
+
+    <!-- Cute logo flower and bunny avatar -->
+    <symbol id="logo-flower" viewBox="0 0 24 24"><g fill="#ff9fc3"><circle cx="12" cy="6.6" r="4"/><circle cx="17.1" cy="10.3" r="4"/><circle cx="15.2" cy="16.3" r="4"/><circle cx="8.8" cy="16.3" r="4"/><circle cx="6.9" cy="10.3" r="4"/></g><circle cx="12" cy="12" r="3.3" fill="#ffd966"/></symbol>
+    <symbol id="avatar-bunny" viewBox="0 0 40 40"><g stroke="#e88aac" stroke-width="1.5" fill="#ffffff"><ellipse cx="14" cy="11" rx="4.2" ry="9"/><ellipse cx="26" cy="11" rx="4.2" ry="9"/></g><ellipse cx="14" cy="11.5" rx="2" ry="6" fill="#ffc6da"/><ellipse cx="26" cy="11.5" rx="2" ry="6" fill="#ffc6da"/><circle cx="20" cy="25" r="12" fill="#ffffff" stroke="#e88aac" stroke-width="1.5"/><circle cx="15.5" cy="24" r="1.6" fill="#5a3a4a"/><circle cx="24.5" cy="24" r="1.6" fill="#5a3a4a"/><ellipse cx="12.5" cy="28" rx="2.4" ry="1.4" fill="#ff9fc3" opacity="0.7"/><ellipse cx="27.5" cy="28" rx="2.4" ry="1.4" fill="#ff9fc3" opacity="0.7"/><path d="M18.8 27.2h2.4l-1.2 1.4z" fill="#e88aac"/></symbol>
+
+    <!-- Weather icons. "cloud-body" is one cute cloud (outline + body + face) reused by the others;
+         its fill color comes from the <use fill="..."> that draws it. -->
+    <symbol id="cloud-body" viewBox="0 0 48 48"><g stroke="#cdb7c6" stroke-width="3"><circle cx="17" cy="29" r="8"/><circle cx="26" cy="22" r="10"/><circle cx="35" cy="29" r="7"/><rect x="10" y="28" width="31" height="9" rx="4.5"/></g><g><circle cx="17" cy="29" r="8"/><circle cx="26" cy="22" r="10"/><circle cx="35" cy="29" r="7"/><rect x="10" y="28" width="31" height="9" rx="4.5"/></g><circle cx="22" cy="29.5" r="1.4" fill="#5a3a4a"/><circle cx="30" cy="29.5" r="1.4" fill="#5a3a4a"/><path d="M24.5 32q1.5 1.4 3 0" fill="none" stroke="#5a3a4a" stroke-width="1.3" stroke-linecap="round"/><ellipse cx="19.5" cy="32" rx="1.8" ry="1" fill="#ff9fb8" opacity="0.6"/><ellipse cx="32.5" cy="32" rx="1.8" ry="1" fill="#ff9fb8" opacity="0.6"/></symbol>
+    <symbol id="sun-body" viewBox="0 0 48 48"><g stroke="#ffc94a" stroke-width="3" stroke-linecap="round"><line x1="24" y1="4" x2="24" y2="8"/><line x1="24" y1="40" x2="24" y2="44"/><line x1="4" y1="24" x2="8" y2="24"/><line x1="40" y1="24" x2="44" y2="24"/><line x1="9.9" y1="9.9" x2="12.7" y2="12.7"/><line x1="35.3" y1="35.3" x2="38.1" y2="38.1"/><line x1="9.9" y1="38.1" x2="12.7" y2="35.3"/><line x1="35.3" y1="12.7" x2="38.1" y2="9.9"/></g><circle cx="24" cy="24" r="11" fill="#ffd966"/><circle cx="20" cy="23" r="1.4" fill="#5a3a4a"/><circle cx="28" cy="23" r="1.4" fill="#5a3a4a"/><path d="M22 27q2 2 4 0" fill="none" stroke="#5a3a4a" stroke-width="1.4" stroke-linecap="round"/><ellipse cx="17.5" cy="26.5" rx="2" ry="1.1" fill="#ff9f9f" opacity="0.6"/><ellipse cx="30.5" cy="26.5" rx="2" ry="1.1" fill="#ff9f9f" opacity="0.6"/></symbol>
+    <symbol id="moon-body" viewBox="0 0 48 48"><circle cx="24" cy="24" r="13" fill="#fff0b3" stroke="#f2d27a" stroke-width="2"/><circle cx="30" cy="17" r="2.2" fill="#f5dc8f"/><circle cx="17" cy="31" r="1.6" fill="#f5dc8f"/><path d="M18.5 23q1.5 1.5 3 0M26.5 23q1.5 1.5 3 0" fill="none" stroke="#5a3a4a" stroke-width="1.4" stroke-linecap="round"/><path d="M22.5 27.5q1.5 1.2 3 0" fill="none" stroke="#5a3a4a" stroke-width="1.3" stroke-linecap="round"/><path d="M40 8l1 2.5 2.5 1-2.5 1-1 2.5-1-2.5-2.5-1 2.5-1z" fill="#ffd966"/></symbol>
+    <symbol id="wx-sun" viewBox="0 0 48 48"><use href="#sun-body" width="48" height="48"/></symbol>
+    <symbol id="wx-moon" viewBox="0 0 48 48"><use href="#moon-body" width="48" height="48"/></symbol>
+    <symbol id="wx-partly" viewBox="0 0 48 48"><use href="#sun-body" x="-1" y="-2" width="32" height="32"/><use href="#cloud-body" fill="#ffffff" x="5" y="6" width="43" height="43"/></symbol>
+    <symbol id="wx-partly-night" viewBox="0 0 48 48"><use href="#moon-body" x="-1" y="-2" width="32" height="32"/><use href="#cloud-body" fill="#ffffff" x="5" y="6" width="43" height="43"/></symbol>
+    <symbol id="wx-cloud" viewBox="0 0 48 48"><use href="#cloud-body" fill="#ffffff" width="48" height="48"/></symbol>
+    <symbol id="wx-fog" viewBox="0 0 48 48"><use href="#cloud-body" fill="#f1edf7" y="-5" width="48" height="48"/><g stroke="#b9b0cc" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="39" x2="32" y2="39"/><line x1="18" y1="44" x2="38" y2="44"/></g></symbol>
+    <symbol id="wx-rain" viewBox="0 0 48 48"><use href="#cloud-body" fill="#e4eefb" y="-6" width="48" height="48"/><g fill="#6aaeea"><path d="M16 36.5q-3 4.6 0 6.3 3-1.7 0-6.3z"/><path d="M25 39q-3 4.6 0 6.3 3-1.7 0-6.3z"/><path d="M34 36.5q-3 4.6 0 6.3 3-1.7 0-6.3z"/></g></symbol>
+    <symbol id="wx-storm" viewBox="0 0 48 48"><use href="#cloud-body" fill="#e6e0f5" y="-6" width="48" height="48"/><path d="M26 32l-6 8h5l-2 7 8-10h-5l2-5z" fill="#ffd34d" stroke="#e8b52e" stroke-width="1" stroke-linejoin="round"/></symbol>
+    <symbol id="wx-snow" viewBox="0 0 48 48"><use href="#cloud-body" fill="#f4f8ff" y="-6" width="48" height="48"/><g fill="#9cc8f2"><circle cx="16" cy="39" r="2"/><circle cx="25" cy="42" r="2"/><circle cx="34" cy="39" r="2"/></g></symbol>
+
+    <!-- Mood faces: pastel circle + face. Shared parts: blush cheeks -->
+    <symbol id="mood-lovely" viewBox="0 0 48 48"><circle cx="24" cy="24" r="20" fill="#ffc2d8"/><path d="M17 25.5l-3.8-3.8a2.3 2.3 0 0 1 3.8-2.8 2.3 2.3 0 0 1 3.8 2.8z" fill="#e0457b"/><path d="M31 25.5l-3.8-3.8a2.3 2.3 0 0 1 3.8-2.8 2.3 2.3 0 0 1 3.8 2.8z" fill="#e0457b"/><path d="M18.5 30q5.5 6 11 0" fill="none" stroke="#5a3a4a" stroke-width="2.4" stroke-linecap="round"/><ellipse cx="11.5" cy="29" rx="3" ry="1.8" fill="#ff7fa8" opacity="0.55"/><ellipse cx="36.5" cy="29" rx="3" ry="1.8" fill="#ff7fa8" opacity="0.55"/></symbol>
+    <symbol id="mood-happy" viewBox="0 0 48 48"><circle cx="24" cy="24" r="20" fill="#ffe28f"/><path d="M14 22q3-4.5 6 0M28 22q3-4.5 6 0" fill="none" stroke="#5a3a4a" stroke-width="2.4" stroke-linecap="round"/><path d="M17.5 28.5q6.5 8 13 0z" fill="#5a3a4a" stroke="#5a3a4a" stroke-width="1.5" stroke-linejoin="round"/><path d="M21 32q3 1.6 6 0" fill="#ff8fb1"/><ellipse cx="11.5" cy="28" rx="3" ry="1.8" fill="#ff9f9f" opacity="0.55"/><ellipse cx="36.5" cy="28" rx="3" ry="1.8" fill="#ff9f9f" opacity="0.55"/></symbol>
+    <symbol id="mood-calm" viewBox="0 0 48 48"><circle cx="24" cy="24" r="20" fill="#c3efd6"/><path d="M14 21q3 3.5 6 0M28 21q3 3.5 6 0" fill="none" stroke="#5a3a4a" stroke-width="2.4" stroke-linecap="round"/><path d="M20 30q4 3.5 8 0" fill="none" stroke="#5a3a4a" stroke-width="2.4" stroke-linecap="round"/><ellipse cx="11.5" cy="27.5" rx="3" ry="1.8" fill="#ff9fb8" opacity="0.5"/><ellipse cx="36.5" cy="27.5" rx="3" ry="1.8" fill="#ff9fb8" opacity="0.5"/></symbol>
+    <symbol id="mood-meh" viewBox="0 0 48 48"><circle cx="24" cy="24" r="20" fill="#e0d4ff"/><circle cx="17" cy="21.5" r="2.3" fill="#5a3a4a"/><circle cx="31" cy="21.5" r="2.3" fill="#5a3a4a"/><path d="M19 31h10" fill="none" stroke="#5a3a4a" stroke-width="2.4" stroke-linecap="round"/><ellipse cx="11.5" cy="27.5" rx="3" ry="1.8" fill="#ff9fb8" opacity="0.45"/><ellipse cx="36.5" cy="27.5" rx="3" ry="1.8" fill="#ff9fb8" opacity="0.45"/></symbol>
+    <symbol id="mood-tired" viewBox="0 0 48 48"><circle cx="24" cy="24" r="20" fill="#cfdcf2"/><path d="M14 22.5h6M28 22.5h6" fill="none" stroke="#5a3a4a" stroke-width="2.4" stroke-linecap="round"/><circle cx="24" cy="31" r="2.6" fill="none" stroke="#5a3a4a" stroke-width="2.2"/><path d="M33 7h5.5l-5.5 6h5.5" fill="none" stroke="#7d8fb8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="11.5" cy="28" rx="3" ry="1.8" fill="#ff9fb8" opacity="0.45"/><ellipse cx="36.5" cy="28" rx="3" ry="1.8" fill="#ff9fb8" opacity="0.45"/></symbol>
+    <symbol id="mood-sad" viewBox="0 0 48 48"><circle cx="24" cy="24" r="20" fill="#bfe0ff"/><circle cx="17" cy="21.5" r="2.3" fill="#5a3a4a"/><circle cx="31" cy="21.5" r="2.3" fill="#5a3a4a"/><path d="M19 33q5-5 10 0" fill="none" stroke="#5a3a4a" stroke-width="2.4" stroke-linecap="round"/><path d="M32.5 25.5q-2.4 3.8 0 5.2 2.4-1.4 0-5.2z" fill="#5aa6ec"/><ellipse cx="11.5" cy="28" rx="3" ry="1.8" fill="#ff9fb8" opacity="0.45"/></symbol>
+    <symbol id="mood-angry" viewBox="0 0 48 48"><circle cx="24" cy="24" r="20" fill="#ffbfb3"/><path d="M13 16.5l7 3M35 16.5l-7 3" fill="none" stroke="#5a3a4a" stroke-width="2.4" stroke-linecap="round"/><circle cx="17" cy="23" r="2.3" fill="#5a3a4a"/><circle cx="31" cy="23" r="2.3" fill="#5a3a4a"/><path d="M19 33q5-4.5 10 0" fill="none" stroke="#5a3a4a" stroke-width="2.4" stroke-linecap="round"/><ellipse cx="11.5" cy="28.5" rx="3" ry="1.8" fill="#ff6f8a" opacity="0.5"/><ellipse cx="36.5" cy="28.5" rx="3" ry="1.8" fill="#ff6f8a" opacity="0.5"/></symbol>
+  </svg>
+
+  <a class="skip-link" href="#main">Skip to main content</a>
+
+  <!-- ============ Header ============ -->
+  <header class="app-header">
+    <a class="brand" href="#dashboard" aria-label="Personal Planner home">
+      <span class="brand-logo" aria-hidden="true"><svg><use href="#logo-flower"></use></svg></span>
+      <span class="brand-name">Personal Planner</span>
+    </a>
+
+    <div class="header-actions">
+      <button id="theme-toggle" class="btn btn-ghost theme-toggle" type="button" aria-label="Switch to dark mode">
+        <svg class="icon" aria-hidden="true"><use href="#icon-moon"></use></svg>
+        <span class="theme-label">Dark</span>
+      </button>
+
+      <a class="profile" href="#settings" aria-label="Profile settings">
+        <span class="avatar" aria-hidden="true"><svg><use href="#avatar-bunny"></use></svg></span>
+        <span id="profile-name" class="profile-name">Guest</span>
+      </a>
+    </div>
+  </header>
+
+  <div class="app-layout">
+    <!-- ============ Navigation (sidebar on desktop, bottom bar on mobile) ============ -->
+    <nav class="app-nav" aria-label="Main navigation">
+      <ul class="nav-list">
+        <li>
+          <a class="nav-link" href="#dashboard" data-view="dashboard">
+            <svg class="icon" aria-hidden="true"><use href="#icon-dashboard"></use></svg>
+            <span>Dashboard</span>
+          </a>
+        </li>
+        <li>
+          <a class="nav-link" href="#tasks" data-view="tasks">
+            <svg class="icon" aria-hidden="true"><use href="#icon-tasks"></use></svg>
+            <span>Tasks</span>
+          </a>
+        </li>
+        <li>
+          <a class="nav-link" href="#diary" data-view="diary">
+            <svg class="icon" aria-hidden="true"><use href="#icon-diary"></use></svg>
+            <span>Diary</span>
+          </a>
+        </li>
+        <li>
+          <a class="nav-link" href="#settings" data-view="settings">
+            <svg class="icon" aria-hidden="true"><use href="#icon-settings"></use></svg>
+            <span>Settings</span>
+          </a>
+        </li>
+      </ul>
+      <p class="nav-note">Your data is saved only in this browser.</p>
+    </nav>
+
+    <!-- ============ Main content ============ -->
+    <main id="main" class="app-main" tabindex="-1" aria-busy="true">
+      <!-- Selected date bar: used by the Tasks and Diary views -->
+      <div id="date-bar" class="date-bar">
+        <button id="prev-day-btn" class="icon-btn" type="button" aria-label="Previous day">
+          <svg class="icon" aria-hidden="true"><use href="#icon-chevron-left"></use></svg>
+        </button>
+        <div class="date-bar-text">
+          <span class="date-bar-caption">Selected date</span>
+          <span id="selected-date-label" class="date-bar-label" aria-live="polite"></span>
+        </div>
+        <button id="next-day-btn" class="icon-btn" type="button" aria-label="Next day">
+          <svg class="icon" aria-hidden="true"><use href="#icon-chevron-right"></use></svg>
+        </button>
+        <span id="today-badge" class="badge badge-primary">Today</span>
+        <button id="back-to-today-btn" class="btn btn-secondary btn-small" type="button" hidden>Back to today</button>
+      </div>
+
+      <p class="loading-state" id="app-loading">Loading your planner…</p>
+
+      <!-- ---------- Dashboard ---------- -->
+      <section id="view-dashboard" class="view" data-view="dashboard" aria-labelledby="dashboard-title" hidden>
+        <h1 id="dashboard-title" class="visually-hidden" tabindex="-1">Dashboard</h1>
+
+        <!-- Hero: greeting + weather + digital clock -->
+        <article class="card hero-card">
+          <div class="hero-text">
+            <p id="dash-greeting" class="hero-greeting"></p>
+            <p id="dash-weekday" class="hero-weekday"></p>
+            <p id="dash-full-date" class="hero-date"></p>
+          </div>
+
+          <section id="weather-card" class="weather" aria-label="Weather" aria-live="polite" aria-busy="true">
+            <p id="weather-loading" class="loading-text weather-loading">
+              <span class="spinner" aria-hidden="true"></span> Loading weather…
+            </p>
+            <div id="weather-error" class="weather-error" hidden>
+              <p>Couldn't load the weather. Check your internet connection.</p>
+              <button id="weather-retry-btn" class="btn btn-secondary btn-small" type="button">Try again</button>
+            </div>
+            <div id="weather-content" class="weather-content" hidden>
+              <svg id="weather-icon" class="weather-icon" aria-hidden="true"><use href="#wx-sun"></use></svg>
+              <div class="weather-main">
+                <p id="weather-temp" class="weather-temp"></p>
+                <p class="weather-condition">
+                  <span id="weather-condition"></span> ·
+                  <a id="weather-location" class="weather-location" href="#settings" title="Change city in Settings"></a>
+                </p>
+                <p id="weather-high-low" class="weather-high-low"></p>
+              </div>
+              <dl class="weather-details">
+                <div><dt>Feels like</dt><dd id="weather-feels"></dd></div>
+                <div><dt>Humidity</dt><dd id="weather-humidity"></dd></div>
+                <div><dt>Rain</dt><dd id="weather-rain"></dd></div>
+              </dl>
+            </div>
+          </section>
+          <div class="clock" role="timer" aria-label="Current time">
+            <time id="clock-time" class="clock-time">00:00</time>
+            <span class="clock-side">
+              <span id="clock-seconds" class="clock-seconds">00</span>
+              <span id="clock-period" class="clock-period" hidden>AM</span>
+            </span>
+          </div>
+        </article>
+
+        <div class="dashboard-grid">
+          <!-- Calendar with a mood face on each day -->
+          <article class="card calendar-card" aria-labelledby="calendar-title">
+            <div class="card-header">
+              <h2 id="calendar-title" class="card-title">
+                <span class="title-icon title-icon-pink" aria-hidden="true"><svg class="icon"><use href="#icon-calendar"></use></svg></span>
+                My Calendar
+              </h2>
+              <button id="cal-today-btn" class="btn btn-secondary btn-small" type="button">Today</button>
+            </div>
+
+            <div class="calendar-controls">
+              <button id="cal-prev-btn" class="icon-btn" type="button" aria-label="Previous month">
+                <svg class="icon" aria-hidden="true"><use href="#icon-chevron-left"></use></svg>
+              </button>
+              <label class="visually-hidden" for="cal-month-select">Month</label>
+              <select id="cal-month-select" class="input select-pill"></select>
+              <label class="visually-hidden" for="cal-year-select">Year</label>
+              <select id="cal-year-select" class="input select-pill"></select>
+              <button id="cal-next-btn" class="icon-btn" type="button" aria-label="Next month">
+                <svg class="icon" aria-hidden="true"><use href="#icon-chevron-right"></use></svg>
+              </button>
+            </div>
+
+            <div class="calendar-weekdays" aria-hidden="true">
+              <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
+            </div>
+            <div id="calendar-grid" class="calendar-grid"></div>
+            <p class="calendar-hint">Tap a day to open your diary</p>
+          </article>
+
+          <div class="dashboard-side">
+            <!-- Today's tasks (always the real today) -->
+            <article class="card" aria-labelledby="dash-todo-title">
+              <div class="card-header">
+                <h2 id="dash-todo-title" class="card-title">
+                  <span class="title-icon title-icon-yellow" aria-hidden="true"><svg class="icon"><use href="#icon-tasks"></use></svg></span>
+                  Today's Tasks
+                </h2>
+                <button class="btn btn-primary btn-small" type="button" data-action="add-task-today">
+                  <svg class="icon" aria-hidden="true"><use href="#icon-plus"></use></svg>
+                  Add
+                </button>
+              </div>
+              <p id="dash-todo-progress-text" class="muted-text"></p>
+              <div class="progress" aria-hidden="true">
+                <div id="dash-todo-progress" class="progress-bar"></div>
+              </div>
+              <ul id="dash-task-list" class="mini-task-list"></ul>
+              <div id="dash-task-empty" class="empty-state empty-state-compact" hidden>
+                <p>No tasks for today. Enjoy your day!</p>
+              </div>
+            </article>
+
+            <!-- Mood summary chart for the month shown in the calendar -->
+            <article class="card" aria-labelledby="mood-chart-title">
+              <div class="card-header">
+                <h2 class="card-title">
+                  <span class="title-icon title-icon-pink" aria-hidden="true"><svg class="icon"><use href="#icon-heart"></use></svg></span>
+                  <span id="mood-chart-title">Mood this month</span>
+                </h2>
+              </div>
+              <p id="mood-chart-caption" class="muted-text"></p>
+              <ul id="mood-chart" class="mood-chart"></ul>
+              <div id="mood-chart-empty" class="empty-state empty-state-compact" hidden>
+                <p>No moods yet this month.<br>Pick one in your diary!</p>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------- Tasks ---------- -->
+      <section id="view-tasks" class="view" data-view="tasks" aria-labelledby="tasks-title" hidden>
+        <div class="view-header">
+          <h1 id="tasks-title" class="view-title" tabindex="-1"><span class="day-word-cap">Today's</span> Tasks</h1>
+          <button class="btn btn-primary" type="button" data-action="add-task">
+            <svg class="icon" aria-hidden="true"><use href="#icon-plus"></use></svg>
+            Add Task
+          </button>
+        </div>
+
+        <div class="card">
+          <div class="filter-group" role="group" aria-label="Filter tasks">
+            <button class="filter-btn is-active" type="button" data-filter="all" aria-pressed="true">
+              All <span class="filter-count" data-count="all">0</span>
+            </button>
+            <button class="filter-btn" type="button" data-filter="active" aria-pressed="false">
+              Active <span class="filter-count" data-count="active">0</span>
+            </button>
+            <button class="filter-btn" type="button" data-filter="completed" aria-pressed="false">
+              Completed <span class="filter-count" data-count="completed">0</span>
+            </button>
+          </div>
+
+          <ul id="task-list" class="task-list"></ul>
+
+          <div id="task-empty" class="empty-state" hidden>
+            <span class="empty-icon" aria-hidden="true"><svg><use href="#logo-flower"></use></svg></span>
+            <p id="task-empty-message">No tasks for today.</p>
+            <button id="task-empty-add-btn" class="btn btn-primary" type="button" data-action="add-task">
+              <svg class="icon" aria-hidden="true"><use href="#icon-plus"></use></svg>
+              Add Task
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------- Diary (mood + journal + tasks + water) ---------- -->
+      <section id="view-diary" class="view" data-view="diary" aria-labelledby="diary-title" hidden>
+        <h1 id="diary-title" class="view-title" tabindex="-1"><span class="day-word-cap">Today's</span> Diary</h1>
+
+        <div class="diary-layout">
+          <div class="diary-main">
+            <!-- Mood picker -->
+            <article class="card" aria-labelledby="mood-title">
+              <h2 id="mood-title" class="card-title">
+                <span class="title-icon title-icon-yellow" aria-hidden="true"><svg class="icon"><use href="#icon-smile"></use></svg></span>
+                How do you feel?
+              </h2>
+              <div id="mood-picker" class="mood-picker" role="radiogroup" aria-labelledby="mood-title"></div>
+              <p id="mood-selected-text" class="muted-text mood-selected-text"></p>
+            </article>
+
+            <!-- Journal -->
+            <article class="card">
+              <form id="diary-form" class="diary-form" novalidate>
+                <label for="diary-content" class="card-title form-label-title">
+                  <span class="title-icon title-icon-pink" aria-hidden="true"><svg class="icon"><use href="#icon-edit"></use></svg></span>
+                  Dear diary…
+                </label>
+                <textarea id="diary-content" class="input diary-textarea" rows="9" maxlength="5000"
+                  placeholder="Write about your day..."></textarea>
+                <div class="diary-meta">
+                  <span id="diary-status" class="muted-text"></span>
+                  <span id="diary-char-count" class="muted-text">0 / 5000</span>
+                </div>
+
+                <div class="image-upload">
+                  <input id="diary-image-input" class="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp">
+                  <label for="diary-image-input" class="btn btn-secondary">
+                    <svg class="icon" aria-hidden="true"><use href="#icon-image"></use></svg>
+                    Add Image
+                  </label>
+                  <span id="diary-image-name" class="muted-text">JPG, PNG or WebP · max 2 MB</span>
+                </div>
+
+                <p id="diary-image-loading" class="loading-text" role="status" hidden>
+                  <span class="spinner" aria-hidden="true"></span> Processing image…
+                </p>
+                <p id="diary-error" class="error-message" role="alert" hidden></p>
+
+                <figure id="diary-image-preview" class="image-preview" hidden>
+                  <img id="diary-preview-img" src="" alt="">
+                  <button id="diary-remove-image-btn" class="btn btn-danger-ghost btn-small" type="button">Remove image</button>
+                </figure>
+
+                <div class="form-actions">
+                  <button id="diary-delete-btn" class="btn btn-danger-ghost" type="button">
+                    <svg class="icon" aria-hidden="true"><use href="#icon-trash"></use></svg>
+                    Delete Entry
+                  </button>
+                  <button class="btn btn-primary" type="submit">
+                    <svg class="icon" aria-hidden="true"><use href="#icon-save"></use></svg>
+                    Save Journal
+                  </button>
+                </div>
+              </form>
+            </article>
+          </div>
+
+          <div class="diary-side">
+            <!-- Tasks for the selected day -->
+            <article class="card" aria-labelledby="diary-todo-title">
+              <div class="card-header">
+                <h2 id="diary-todo-title" class="card-title">
+                  <span class="title-icon title-icon-yellow" aria-hidden="true"><svg class="icon"><use href="#icon-tasks"></use></svg></span>
+                  To-do
+                </h2>
+                <button class="btn btn-primary btn-small" type="button" data-action="add-task">
+                  <svg class="icon" aria-hidden="true"><use href="#icon-plus"></use></svg>
+                  Add
+                </button>
+              </div>
+              <ul id="diary-task-list" class="mini-task-list"></ul>
+              <div id="diary-task-empty" class="empty-state empty-state-compact" hidden>
+                <p>Nothing to do on this day.</p>
+              </div>
+            </article>
+
+            <!-- Water tracker -->
+            <article class="card water-card" aria-labelledby="water-title">
+              <h2 id="water-title" class="card-title card-title-center">
+                <span class="title-icon title-icon-blue" aria-hidden="true"><svg class="icon"><use href="#icon-water"></use></svg></span>
+                Water
+              </h2>
+              <p class="water-big">
+                <span id="water-count">0</span> / <span id="water-goal">8</span> glasses
+              </p>
+              <div id="water-glasses" class="glasses"></div>
+              <div class="progress progress-water" aria-hidden="true">
+                <div id="water-progress" class="progress-bar"></div>
+              </div>
+              <p id="water-message" class="water-message" role="status"></p>
+
+              <div class="button-row">
+                <button id="water-add-btn" class="btn btn-water" type="button">+ Add Glass</button>
+                <button id="water-remove-btn" class="btn btn-secondary btn-small" type="button">− Remove</button>
+                <button id="water-reset-btn" class="btn btn-ghost btn-small" type="button">Reset</button>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------- Settings ---------- -->
+      <section id="view-settings" class="view" data-view="settings" aria-labelledby="settings-title" hidden>
+        <h1 id="settings-title" class="view-title" tabindex="-1">Settings</h1>
+
+        <div class="settings-grid">
+          <article class="card" aria-labelledby="settings-profile-title">
+            <h2 id="settings-profile-title" class="card-title">
+              <span class="title-icon title-icon-pink" aria-hidden="true"><svg class="icon"><use href="#icon-user"></use></svg></span>
+              Profile
+            </h2>
+            <div class="settings-profile">
+              <span class="avatar avatar-large" aria-hidden="true"><svg><use href="#avatar-bunny"></use></svg></span>
+              <div class="form-field settings-field-grow">
+                <label for="settings-name-input" class="form-label">Your name</label>
+                <input id="settings-name-input" class="input" type="text" maxlength="30" autocomplete="nickname" placeholder="Guest">
+                <p class="field-hint">Shown in the header and in your greeting.</p>
+              </div>
+            </div>
+          </article>
+
+          <article class="card" aria-labelledby="settings-look-title">
+            <h2 id="settings-look-title" class="card-title">
+              <span class="title-icon title-icon-yellow" aria-hidden="true"><svg class="icon"><use href="#icon-sun"></use></svg></span>
+              Appearance
+            </h2>
+            <fieldset class="setting-row">
+              <legend class="form-label">Theme</legend>
+              <div class="segmented">
+                <label><input type="radio" name="theme" value="light"><span>Light</span></label>
+                <label><input type="radio" name="theme" value="dark"><span>Dark</span></label>
+              </div>
+            </fieldset>
+            <fieldset class="setting-row">
+              <legend class="form-label">Clock</legend>
+              <div class="segmented">
+                <label><input type="radio" name="clockFormat" value="24"><span>24-hour</span></label>
+                <label><input type="radio" name="clockFormat" value="12"><span>12-hour</span></label>
+              </div>
+            </fieldset>
+            <label class="switch-row">
+              <span>Show seconds on the clock</span>
+              <input id="settings-seconds-input" class="switch" type="checkbox">
+            </label>
+          </article>
+
+          <article class="card" aria-labelledby="settings-weather-title">
+            <h2 id="settings-weather-title" class="card-title">
+              <span class="title-icon title-icon-blue" aria-hidden="true"><svg class="icon"><use href="#icon-cloud"></use></svg></span>
+              Weather
+            </h2>
+            <p class="muted-text settings-text">Showing weather for <strong id="settings-weather-city"></strong></p>
+
+            <form id="city-search-form" class="city-search" novalidate>
+              <label for="city-search-input" class="visually-hidden">Search for a city</label>
+              <input id="city-search-input" class="input" type="search" placeholder="Search a city, e.g. Chiang Mai" autocomplete="off">
+              <button class="btn btn-secondary" type="submit">Search</button>
+            </form>
+            <p id="city-search-status" class="muted-text city-search-status" role="status"></p>
+            <ul id="city-results" class="city-results"></ul>
+
+            <button id="use-my-location-btn" class="btn btn-ghost btn-small" type="button">
+              <svg class="icon" aria-hidden="true"><use href="#icon-pin"></use></svg>
+              Use my current location
+            </button>
+
+            <fieldset class="setting-row setting-row-top">
+              <legend class="form-label">Temperature</legend>
+              <div class="segmented">
+                <label><input type="radio" name="temperatureUnit" value="celsius"><span>°C</span></label>
+                <label><input type="radio" name="temperatureUnit" value="fahrenheit"><span>°F</span></label>
+              </div>
+            </fieldset>
+            <p class="field-hint">Weather data by <a class="text-link" href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo</a>.</p>
+          </article>
+
+          <article class="card" aria-labelledby="settings-water-title">
+            <h2 id="settings-water-title" class="card-title">
+              <span class="title-icon title-icon-blue" aria-hidden="true"><svg class="icon"><use href="#icon-water"></use></svg></span>
+              Water goal
+            </h2>
+            <div class="form-field">
+              <label for="settings-water-goal" class="form-label">Glasses per day</label>
+              <select id="settings-water-goal" class="input"></select>
+              <p class="field-hint">Used for today and new days. Days you already logged keep their goal.</p>
+            </div>
+          </article>
+
+          <article class="card" aria-labelledby="settings-data-title">
+            <h2 id="settings-data-title" class="card-title">
+              <span class="title-icon title-icon-pink" aria-hidden="true"><svg class="icon"><use href="#icon-database"></use></svg></span>
+              Your data
+            </h2>
+            <p class="muted-text settings-text">All data is stored only in this browser (LocalStorage). Download a backup to keep it safe or move it to another device.</p>
+            <div class="settings-actions">
+              <button id="settings-export-btn" class="btn btn-secondary" type="button">
+                <svg class="icon" aria-hidden="true"><use href="#icon-download"></use></svg>
+                Download backup
+              </button>
+              <input id="settings-import-input" class="visually-hidden" type="file" accept="application/json,.json">
+              <label for="settings-import-input" class="btn btn-secondary">
+                <svg class="icon" aria-hidden="true"><use href="#icon-upload"></use></svg>
+                Restore backup
+              </label>
+            </div>
+            <p id="settings-data-error" class="error-message" role="alert" hidden></p>
+            <div class="danger-zone">
+              <p class="muted-text">Delete every task, diary entry, mood and setting.</p>
+              <button id="settings-reset-btn" class="btn btn-danger-ghost" type="button">
+                <svg class="icon" aria-hidden="true"><use href="#icon-trash"></use></svg>
+                Delete all data
+              </button>
+            </div>
+          </article>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- ============ Task form dialog (used for both Add and Edit) ============ -->
+  <dialog id="task-dialog" class="dialog" aria-labelledby="task-dialog-title">
+    <form id="task-form" class="dialog-form" novalidate>
+      <h2 id="task-dialog-title" class="dialog-title">Add Task</h2>
+
+      <div class="form-field">
+        <label for="task-title-input" class="form-label">Task Title <span class="required" aria-hidden="true">*</span></label>
+        <input id="task-title-input" class="input" name="title" type="text" maxlength="100"
+          autocomplete="off" aria-describedby="task-title-error" required>
+        <p id="task-title-error" class="field-error" hidden>Task title is required.</p>
+      </div>
+
+      <div class="form-field">
+        <label for="task-description-input" class="form-label">Description</label>
+        <textarea id="task-description-input" class="input" name="description" rows="3" maxlength="300"></textarea>
+      </div>
+
+      <div class="form-row">
+        <div class="form-field">
+          <label for="task-priority-input" class="form-label">Priority</label>
+          <select id="task-priority-input" class="input" name="priority">
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+          </select>
+        </div>
+
+        <div class="form-field">
+          <label for="task-date-input" class="form-label">Due Date</label>
+          <input id="task-date-input" class="input" name="date" type="date" aria-describedby="task-date-error" required>
+          <p id="task-date-error" class="field-error" hidden>Please choose a valid date.</p>
+        </div>
+      </div>
+
+      <div class="dialog-actions">
+        <button class="btn btn-secondary" type="button" data-close-dialog>Cancel</button>
+        <button id="task-submit-btn" class="btn btn-primary" type="submit">Save Task</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- ============ Confirmation dialog ============ -->
+  <dialog id="confirm-dialog" class="dialog dialog-small" aria-labelledby="confirm-title" aria-describedby="confirm-message">
+    <!-- method="dialog" closes the dialog and sets dialog.returnValue to the clicked button's value -->
+    <form method="dialog" class="dialog-form">
+      <h2 id="confirm-title" class="dialog-title">Are you sure?</h2>
+      <p id="confirm-message" class="dialog-message"></p>
+      <div class="dialog-actions">
+        <button class="btn btn-secondary" value="cancel">Cancel</button>
+        <button id="confirm-ok-btn" class="btn btn-danger" value="confirm">Delete</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Toast messages are announced to screen readers through aria-live -->
+  <div id="toast-container" class="toast-container" aria-live="polite" aria-atomic="false"></div>
+
+  <script src="js/storage.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/settings.js"></script>
+  <script src="js/tasks.js"></script>
+  <script src="js/calendar.js"></script>
+  <script src="js/water.js"></script>
+  <script src="js/diary.js"></script>
+  <script src="js/weather.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
